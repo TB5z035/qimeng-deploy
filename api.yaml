@@ -1,0 +1,240 @@
+swagger: '2.0'
+info:
+  title: 视觉质检系统
+  version: '1.0'
+host: URL
+schemes:
+  - http
+  - https
+basePath: /apis/v1.0
+produces:
+  - application/json
+consumes:
+  - application/json
+securityDefinitions:
+  basic:
+    type: basic
+security:
+  - basic: []
+  - {}
+paths:
+  /queries:
+    get:
+      summary: 检测列表
+      description: 这个接口获取全部检测结果（待检测，正在检测，已检测完成）
+      responses:
+        '200':
+          description: 正常情况下，返回全部检测结果
+          headers:
+            X-Total-Count:
+              description: 检测结果总数
+              type: integer
+          schema:
+            $ref: '#/definitions/QueryList'
+        '500':
+          $ref: '#/responses/500'
+  /query:
+    get:
+      summary: 检测查询
+      description: 此接口根据ID获取单次检测结果
+      parameters:
+        - $ref: '#/parameters/queryId'
+      responses:
+        '200':
+          description: 查询完成。返回对应检测的结果
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Query'
+        '404':
+          description: Not found
+          schema:
+            $ref: '#/definitions/Errors'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Errors'
+
+    post:
+      summary: 检测请求提交
+      description: 此接口将本地信息上传到质检系统中，返回得到一次检测的唯一编号以供后续查询
+      parameters:
+        - $ref: '#/parameters/stationId'
+      responses:
+        '201':
+          description: Created
+          schema:
+            type: object
+            properties:
+              unique_id: 
+                type: string
+                description: 唯一ID
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Errors'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Errors'
+parameters:
+  stationId:
+    name: station_id
+    description: 工站编号
+    in: query
+    type: string
+    required: true
+  queryId:
+    name: query_id
+    in: query
+    description: 检测唯一编号
+    required: true
+    type: string
+
+
+responses:
+  '200':
+    description: Success
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+  '201':
+    description: Created
+    headers:
+      UniqueId:
+        description: 每个提交的检测的唯一编号
+        type: string
+  '202':
+    description: Accepted
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+  '400':
+    description: Bad request
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+  '401':
+    description: Unauthorized
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+  '403':
+    description: Forbidden
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+  '404':
+    description: Not found
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+  '405':
+    description: Method not allowed
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+  '409':
+    description: Conflict
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+  '412':
+    description: Precondition failed
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+  '415':
+    description: Unsupported MediaType
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+  '500':
+    description: Internal server error
+    headers:
+      X-Request-Id:
+        description: The ID of the corresponding request for the response
+        type: string
+    schema:
+      $ref: '#/definitions/Errors'
+
+definitions:
+  Errors:
+    description: The error array that describe the errors got during the handling of request
+    type: object
+    properties:
+      errors:
+        type: array
+        items:
+          $ref: '#/definitions/Error'
+  Error:
+    description: a model for all the error response coming from harbor
+    type: object
+    properties:
+      code:
+        type: string
+        description: The error code
+      message:
+        type: string
+        description: The error message
+  UniqueId:
+    type: string
+    description: 每次提交检测的唯一ID
+  QueryList:
+    type: array
+    items:
+      $ref: '#/definitions/Query'
+  Query:
+    type: object
+    description: a
+    properties:
+      id:
+        type: integer
+        format: int64
+        description: The ID of the Query
+      bricks:
+        type: array
+        items:
+          $ref: '#/definitions/Brick'
+  Brick:
+    type: object
+    properties:
+      shape_id:
+        type: string
+        description: The shape id of the brick
+      shape_desc:
+        type: string
+        description: The shape description of the brick
+      color_id:
+        type: string
+        description: The color id of the brick
+      color_desc:
+        type: string
+        description: The color description of the brick
+        
