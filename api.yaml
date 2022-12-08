@@ -32,7 +32,9 @@ paths:
           schema:
             $ref: '#/definitions/QueryList'
         '500':
-          $ref: '#/responses/500'
+          description: 服务端错误。错误代码
+          schema:
+            $ref: '#/definitions/Errors'
   /query:
     get:
       summary: 检测查询
@@ -47,11 +49,11 @@ paths:
             items:
               $ref: '#/definitions/Query'
         '404':
-          description: Not found
+          description: 请求错误
           schema:
             $ref: '#/definitions/Errors'
         '500':
-          description: Internal server error
+          description: 服务端错误
           schema:
             $ref: '#/definitions/Errors'
 
@@ -62,19 +64,19 @@ paths:
         - $ref: '#/parameters/stationId'
       responses:
         '201':
-          description: Created
+          description: 已提交。返回检测请求的ID
           schema:
             type: object
             properties:
               unique_id: 
                 type: string
-                description: 唯一ID
+                description: 检测请求唯一ID
         '400':
-          description: Bad request
+          description: 请求错误
           schema:
             $ref: '#/definitions/Errors'
         '500':
-          description: Internal server error
+          description: 服务端错误
           schema:
             $ref: '#/definitions/Errors'
 parameters:
@@ -91,102 +93,9 @@ parameters:
     required: true
     type: string
 
-
-responses:
-  '200':
-    description: Success
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-  '201':
-    description: Created
-    headers:
-      UniqueId:
-        description: 每个提交的检测的唯一编号
-        type: string
-  '202':
-    description: Accepted
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-  '400':
-    description: Bad request
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-  '401':
-    description: Unauthorized
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-  '403':
-    description: Forbidden
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-  '404':
-    description: Not found
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-  '405':
-    description: Method not allowed
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-  '409':
-    description: Conflict
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-  '412':
-    description: Precondition failed
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-  '415':
-    description: Unsupported MediaType
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-  '500':
-    description: Internal server error
-    headers:
-      X-Request-Id:
-        description: The ID of the corresponding request for the response
-        type: string
-    schema:
-      $ref: '#/definitions/Errors'
-
 definitions:
   Errors:
-    description: The error array that describe the errors got during the handling of request
+    description: 错误列表。当请求失败时返回的错误列表
     type: object
     properties:
       errors:
@@ -194,12 +103,15 @@ definitions:
         items:
           $ref: '#/definitions/Error'
   Error:
-    description: a model for all the error response coming from harbor
+    description: "
+    请求失败时发生的错误
+    - 11
+    "
     type: object
     properties:
       code:
         type: string
-        description: The error code
+        description: 错误
       message:
         type: string
         description: The error message
@@ -237,4 +149,3 @@ definitions:
       color_desc:
         type: string
         description: The color description of the brick
-        
