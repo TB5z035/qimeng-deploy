@@ -1,0 +1,219 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "\u89c6\u89c9\u8d28\u68c0\u7cfb\u7edf",
+        "version": "1.0"
+    },
+    "host": "URL",
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "basePath": "/apis/v1.0",
+    "produces": [
+        "application/json"
+    ],
+    "consumes": [
+        "application/json"
+    ],
+    "securityDefinitions": {
+        "basic": {
+            "type": "basic"
+        }
+    },
+    "security": [
+        {
+            "basic": []
+        },
+        {}
+    ],
+    "paths": {
+        "/queries": {
+            "get": {
+                "summary": "\u68c0\u6d4b\u5217\u8868",
+                "description": "\u8fd9\u4e2a\u63a5\u53e3\u83b7\u53d6\u5168\u90e8\u68c0\u6d4b\u7ed3\u679c\uff08\u5f85\u68c0\u6d4b\uff0c\u6b63\u5728\u68c0\u6d4b\uff0c\u5df2\u68c0\u6d4b\u5b8c\u6210\uff09",
+                "responses": {
+                    "200": {
+                        "description": "\u6b63\u5e38\u60c5\u51b5\u4e0b\uff0c\u8fd4\u56de\u5168\u90e8\u68c0\u6d4b\u7ed3\u679c",
+                        "headers": {
+                            "X-Total-Count": {
+                                "description": "\u68c0\u6d4b\u7ed3\u679c\u603b\u6570",
+                                "type": "integer"
+                            }
+                        },
+                        "schema": {
+                            "$ref": "#/definitions/QueryList"
+                        }
+                    },
+                    "500": {
+                        "description": "\u670d\u52a1\u7aef\u9519\u8bef\u3002\u9519\u8bef\u4ee3\u7801",
+                        "schema": {
+                            "$ref": "#/definitions/Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/query": {
+            "get": {
+                "summary": "\u68c0\u6d4b\u67e5\u8be2",
+                "description": "\u6b64\u63a5\u53e3\u6839\u636eID\u83b7\u53d6\u5355\u6b21\u68c0\u6d4b\u7ed3\u679c",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/queryId"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u67e5\u8be2\u5b8c\u6210\u3002\u8fd4\u56de\u5bf9\u5e94\u68c0\u6d4b\u7684\u7ed3\u679c",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Query"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8bf7\u6c42\u9519\u8bef",
+                        "schema": {
+                            "$ref": "#/definitions/Errors"
+                        }
+                    },
+                    "500": {
+                        "description": "\u670d\u52a1\u7aef\u9519\u8bef",
+                        "schema": {
+                            "$ref": "#/definitions/Errors"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "\u68c0\u6d4b\u8bf7\u6c42\u63d0\u4ea4",
+                "description": "\u6b64\u63a5\u53e3\u5c06\u672c\u5730\u4fe1\u606f\u4e0a\u4f20\u5230\u8d28\u68c0\u7cfb\u7edf\u4e2d\uff0c\u8fd4\u56de\u5f97\u5230\u4e00\u6b21\u68c0\u6d4b\u7684\u552f\u4e00\u7f16\u53f7\u4ee5\u4f9b\u540e\u7eed\u67e5\u8be2",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/stationId"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "\u5df2\u63d0\u4ea4\u3002\u8fd4\u56de\u68c0\u6d4b\u8bf7\u6c42\u7684ID",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "unique_id": {
+                                    "type": "string",
+                                    "description": "\u68c0\u6d4b\u8bf7\u6c42\u552f\u4e00ID"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "\u8bf7\u6c42\u9519\u8bef",
+                        "schema": {
+                            "$ref": "#/definitions/Errors"
+                        }
+                    },
+                    "500": {
+                        "description": "\u670d\u52a1\u7aef\u9519\u8bef",
+                        "schema": {
+                            "$ref": "#/definitions/Errors"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "parameters": {
+        "stationId": {
+            "name": "station_id",
+            "description": "\u5de5\u7ad9\u7f16\u53f7",
+            "in": "query",
+            "type": "string",
+            "required": true
+        },
+        "queryId": {
+            "name": "query_id",
+            "in": "query",
+            "description": "\u68c0\u6d4b\u552f\u4e00\u7f16\u53f7",
+            "required": true,
+            "type": "string"
+        }
+    },
+    "definitions": {
+        "Errors": {
+            "description": "\u9519\u8bef\u5217\u8868\u3002\u5f53\u8bf7\u6c42\u5931\u8d25\u65f6\u8fd4\u56de\u7684\u9519\u8bef\u5217\u8868",
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Error"
+                    }
+                }
+            }
+        },
+        "Error": {
+            "description": " \u8bf7\u6c42\u5931\u8d25\u65f6\u53d1\u751f\u7684\u9519\u8bef - 11 ",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "\u9519\u8bef"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "The error message"
+                }
+            }
+        },
+        "UniqueId": {
+            "type": "string",
+            "description": "\u6bcf\u6b21\u63d0\u4ea4\u68c0\u6d4b\u7684\u552f\u4e00ID"
+        },
+        "QueryList": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/Query"
+            }
+        },
+        "Query": {
+            "type": "object",
+            "description": "a",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "The ID of the Query"
+                },
+                "bricks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Brick"
+                    }
+                }
+            }
+        },
+        "Brick": {
+            "type": "object",
+            "properties": {
+                "shape_id": {
+                    "type": "string",
+                    "description": "The shape id of the brick"
+                },
+                "shape_desc": {
+                    "type": "string",
+                    "description": "The shape description of the brick"
+                },
+                "color_id": {
+                    "type": "string",
+                    "description": "The color id of the brick"
+                },
+                "color_desc": {
+                    "type": "string",
+                    "description": "The color description of the brick"
+                }
+            }
+        }
+    }
+}
