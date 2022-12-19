@@ -4,7 +4,9 @@ from camera.server_mock import get_camera_image
 from apis.models import DetectionRequest
 import json
 import logging
+
 logger = logging.getLogger('qimeng.ctrl.on_submit')
+
 
 def try_wrapp(fn):
 
@@ -16,6 +18,7 @@ def try_wrapp(fn):
             return None
 
     return fn
+
 
 class Brick:
 
@@ -33,6 +36,7 @@ class Brick:
 
     def __str__(self) -> str:
         return str((self._shape, self._color))
+
 
 @try_wrapp
 def on_submit(det_req: DetectionRequest):
