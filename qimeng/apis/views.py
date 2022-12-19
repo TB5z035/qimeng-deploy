@@ -50,5 +50,11 @@ def query_det_req(request, id):
     return JsonResponse({'detection_id': det_req.id, 'status': det_req.status, 'result': det_req.result})
 
 
+def clear(request):
+    if request.method != 'POST':
+        return HttpResponseBadRequest()
+    DetectionRequest.objects.all().delete()
+    return HttpResponse('success')
+
 def update_list(request):
     return ...
