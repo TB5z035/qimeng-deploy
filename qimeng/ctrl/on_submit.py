@@ -17,7 +17,7 @@ def handle_exception(fn):
             logger.error(str(type(e)) + ': ' + str(e))
             return None
 
-    return fn
+    return with_exception_handler
 
 
 class Brick:
