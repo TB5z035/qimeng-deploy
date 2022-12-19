@@ -3,9 +3,14 @@ import numpy as np
 from camera.server_mock import get_camera_image
 from apis.models import DetectionRequest
 import json
+import asyncio
+import time
+import threading
+import multiprocessing as mp
 import logging
 
 logger = logging.getLogger('qimeng.ctrl.on_submit')
+
 
 class Brick:
 
@@ -31,29 +36,33 @@ class Brick:
 def on_submit(det_req: DetectionRequest):
     try:
         assert det_req.result is None
+
         logger.info('Started shotting')
-        det_req.status = DetectionRequest.SHOTTING
+        det_req.status = DetectionRequest.RUNNING
         det_req.save()
-        arr = get_camera_image(det_req.station_id)
-        logger.info('Finished shotting')
+
+        # camera_task = asyncio.create_task(get_camera_image(det_req.station_id))
+        # camera_thread = threading.Thread(target=get_camera_image, args=[det_req.station_id])
+        shared_buffer = mp.RawArray('B', 4224 * 3672 * 3)
+        camera_process = mp.Process(target=get_camera_image, args=[det_req.station_id, shared_buffer])
+        camera_process.start()
 
         if det_req.search_key is not None:
             logger.info('search_key exists. Start searching')
-            det_req.status = DetectionRequest.SEARCHING
-            det_req.save()
-            brick_list = search_list(det_req.search_key)
-            logger.info('Finished searching')
+            brick_list_task = asyncio.create_task(search_list(det_req.search_key))
         elif det_req.order_list is not None:
             logger.info('order_list exists. Start unserializing')
-            order_list = json.loads(det_req.order_list)
-            brick_list = [Brick(*i) for i in order_list]
-            logger.info('Finished unserializing')
+            brick_list_task = asyncio.create_task(parse_list(det_req.order_list))
+        else:
+            brick_list_task = None
+
+        camera_thread.join()
+        # arr = camera_task
+        if brick_list_task is not None:
+            brick_list = brick_list_task
         else:
             brick_list = None
 
-        logger.info('Started inferencing')
-        det_req.status = DetectionRequest.RUNNING
-        det_req.save()
         result = detection(arr, brick_list)
         logger.info('Finished inferencing')
 
@@ -65,8 +74,14 @@ def on_submit(det_req: DetectionRequest):
         logger.error(str(type(e)) + ': ' + str(e))
 
 
+def parse_list(buffer: str) -> List[Brick]:
+    order_list = json.loads(buffer)
+    return [Brick(*i) for i in order_list]
+
+
 def search_list(key: str) -> List[Brick]:
     # TODO fill in implementation
+    time.sleep(5)
     return [
         Brick(shape=key, color='Grey'),
     ]
