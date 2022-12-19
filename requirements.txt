@@ -1,2 +1,5 @@
 django
 django-rq
+Pillow
+yapf
+timeout_decorator
