@@ -3,4 +3,4 @@
 .vscode/
 redis/conf/
 secret.py
-redis.conf
+**/redis.conf

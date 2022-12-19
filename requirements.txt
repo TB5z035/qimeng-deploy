@@ -1,5 +1,6 @@
 django
 django-rq
+numpy
 Pillow
 yapf
 timeout_decorator

@@ -25,7 +25,7 @@ def create_det_req(request: HttpRequest):
     if 'station_id' not in request.POST:
         return HttpResponseBadRequest()
     station_id = request.POST.get('station_id')
-    search_key = request.POST.get('station_id', None)
+    search_key = request.POST.get('search_key', None)
     order_list = request.POST.get('order_list', None)
     if order_list is not None:
         try:
@@ -55,6 +55,7 @@ def clear(request):
         return HttpResponseBadRequest()
     DetectionRequest.objects.all().delete()
     return HttpResponse('success')
+
 
 def update_list(request):
     return ...

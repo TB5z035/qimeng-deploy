@@ -4,14 +4,17 @@ import numpy as np
 from timeout_decorator import timeout, TimeoutError
 from typing import Optional
 
+from .config import SHAPE
 
-def get_camera_image(station_id: str, save_buffer, time_limit: int = 10) -> Optional[np.ndarray]:
+
+def get_camera_image(station_id: str, save_buffer=None, time_limit: int = 10) -> Optional[np.ndarray]:
 
     @timeout(time_limit)
     def _get_image():
-        print(station_id)
-        time.sleep(5)
-        image_arr = np.array(Image.open('camera/test.png'), dtype=np.uint8)
+        time.sleep(1)
+        share_arr = np.ndarray(SHAPE, buffer=save_buffer, dtype=np.uint8)
+        image_arr = np.asarray(Image.open('camera/test.png'), dtype=np.uint8)
+        np.copyto(share_arr, image_arr)
 
     try:
         return _get_image()

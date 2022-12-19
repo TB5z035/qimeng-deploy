@@ -72,7 +72,7 @@ RQ_QUEUES = {
 
 LOGGING = {
     "version": 1,
-    "disable_existing_loggers": True,
+    "disable_existing_loggers": False,
     "formatters": {
         "rq_console": {
             "format": "[%(name)s] %(asctime)s %(message)s",
@@ -88,6 +88,10 @@ LOGGING = {
         },
     },
     'loggers': {
+        "handler": {
+            "handlers": ["rq_console"],
+            "level": "DEBUG"
+        },
         "rq.worker": {
             "handlers": ["rq_console"],
             "level": "DEBUG"
