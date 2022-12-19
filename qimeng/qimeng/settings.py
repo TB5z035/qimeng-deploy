@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
+from .secret import REDIS_PASSWD
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,34 +45,58 @@ INSTALLED_APPS = [
 
 RQ_QUEUES = {
     'default': {
-        'HOST': 'localhost',
-        'PORT': 6379,
+        'HOST': '127.0.0.1',
+        'PORT': 30079,
         'DB': 0,
-        'PASSWORD': 'some-password',
+        'PASSWORD': REDIS_PASSWD,
         'DEFAULT_TIMEOUT': 360,
     },
-    'with-sentinel': {
-        'SENTINELS': [('localhost', 26736), ('localhost', 26737)],
-        'MASTER_NAME': 'redismaster',
-        'DB': 0,
-        'PASSWORD': 'secret',
-        'SOCKET_TIMEOUT': None,
-        'CONNECTION_KWARGS': {
-            'socket_connect_timeout': 0.3
-        },
-    },
+    # 'with-sentinel': {
+    #     'SENTINELS': [('localhost', 26736), ('localhost', 26737)],
+    #     'MASTER_NAME': 'redismaster',
+    #     'DB': 0,
+    #     'PASSWORD': 'secret',
+    #     'SOCKET_TIMEOUT': None,
+    #     'CONNECTION_KWARGS': {
+    #         'socket_connect_timeout': 0.3
+    #     },
+    # },
     'high': {
         'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'), # If you're on Heroku
         'DEFAULT_TIMEOUT': 500,
     },
     'low': {
         'HOST': 'localhost',
-        'PORT': 6379,
+        'PORT': 30079,
         'DB': 0,
     }
 }
 
-RQ_EXCEPTION_HANDLERS = ['path.to.my.handler'] # If you need custom exception handlers
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": True,
+    "formatters": {
+        "rq_console": {
+            "format": "[%(name)s] %(asctime)s %(message)s",
+            "datefmt": "%H:%M:%S",
+        },
+    },
+    "handlers": {
+        "rq_console": {
+            "level": "DEBUG",
+            "class": "rq.utils.ColorizingStreamHandler",
+            "formatter": "rq_console",
+            "exclude": ["%(asctime)s"],
+        },
+    },
+    'loggers': {
+        "rq.worker": {
+            "handlers": ["rq_console"],
+            "level": "DEBUG"
+        },
+    }
+}
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

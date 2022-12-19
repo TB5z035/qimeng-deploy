@@ -1,8 +1,11 @@
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseServerError, HttpResponseBadRequest, HttpRequest, JsonResponse
+import json
+import django_rq as rq
+import logging
 
 from .models import DetectionRequest
-
+from ctrl.on_submit import on_submit
 # Create your views here.
 def ping(request):
     return HttpResponse('pong')
@@ -18,14 +21,20 @@ def create_det_req(request: HttpRequest):
     if 'station_id' not in request.POST:
         return HttpResponseBadRequest()
     station_id = request.POST.get('station_id')
-    search_key = request.POST.get('station_id', '') 
-    order_id = request.POST.get('order_id', '')
+    search_key = request.POST.get('station_id', None) 
+    order_list = request.POST.get('order_list', None)
+    if order_list is not None:
+        try:
+            assert type(json.loads(order_list)) == list
+        except:
+            return HttpResponseBadRequest()
     det_req = DetectionRequest(
         station_id=station_id,
         search_key=search_key,
-        order_id=order_id
+        order_list=order_list
     )
     det_req.save()
+    rq.enqueue(on_submit, det_req)
     return JsonResponse({
         'detection_id': det_req.id
     })
@@ -42,6 +51,7 @@ def query_det_req(request, id):
     return JsonResponse({
         'detection_id': det_req.id,
         'status': det_req.status,
+        'result': det_req.result
     })
 
 def update_list(request):
