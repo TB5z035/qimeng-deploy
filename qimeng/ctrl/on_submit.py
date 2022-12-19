@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger('qimeng.ctrl.on_submit')
 
 
-def try_wrapp(fn):
+def handle_exception(fn):
 
     def with_exception_handler(*args, **kwargs):
         try:
@@ -38,7 +38,7 @@ class Brick:
         return str((self._shape, self._color))
 
 
-@try_wrapp
+@handle_exception
 def on_submit(det_req: DetectionRequest):
     assert det_req.result is None
     logger.info('Started shotting')
