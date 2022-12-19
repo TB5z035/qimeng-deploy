@@ -44,7 +44,7 @@ INSTALLED_APPS = [
 RQ_QUEUES = {
     'default': {
         'HOST': '127.0.0.1',
-        'PORT': 30079,
+        'PORT': 6379,
         'DB': 0,
         'PASSWORD': REDIS_PASSWD,
         'DEFAULT_TIMEOUT': 360,
@@ -65,7 +65,7 @@ RQ_QUEUES = {
     },
     'low': {
         'HOST': 'localhost',
-        'PORT': 30079,
+        'PORT': 6379,
         'DB': 0,
     }
 }
