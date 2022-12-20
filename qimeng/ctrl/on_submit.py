@@ -1,6 +1,6 @@
 from typing import List, Optional
 import numpy as np
-from camera.server_mock import get_camera_image
+from camera.server_local import generate_image_mp
 from camera.config import SHAPE
 from apis.models import DetectionRequest
 import json
@@ -32,8 +32,7 @@ class Brick:
     def __str__(self) -> str:
         return str((self._shape, self._color))
 
-
-def on_submit(det_req: DetectionRequest):
+def on_submit(det_req: DetectionRequest, sess):
     now = datetime.now()
     try:
         assert det_req.result is None
@@ -41,13 +40,10 @@ def on_submit(det_req: DetectionRequest):
         logger.info('Started shotting')
         det_req.status = DetectionRequest.RUNNING
         det_req.save()
-
-        # Camera process started
-        image_arr = np.ndarray(SHAPE, dtype=np.uint8)
-        image_arr_buf = mp.RawArray('B', image_arr.nbytes)
-        camera_process = mp.Process(target=get_camera_image, args=[det_req.station_id, image_arr_buf])
-        camera_process.start()
-        logger.info('Camera started')
+        
+        if det_req.station_id not in sess:
+            sess[det_req.station_id] = generate_image_mp(det_req.station_id)
+        image_arr = next(sess[det_req.station_id])
 
         # Search orderlist
         if det_req.order_list is not None:
@@ -58,12 +54,6 @@ def on_submit(det_req: DetectionRequest):
             brick_list = search_list(det_req.search_key)
         else:
             brick_list = None
-
-        # Camera process joined
-        camera_process.join()
-        logger.info('Camera joined')
-        image_arr = np.frombuffer(image_arr_buf, dtype=np.uint8).reshape(SHAPE)
-        # image_arr = get_camera_image(det_req.station_id)
 
         # Detection
         result = detection(image_arr, brick_list)

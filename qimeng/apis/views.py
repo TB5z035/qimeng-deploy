@@ -34,7 +34,8 @@ def create_det_req(request: HttpRequest):
             return HttpResponseBadRequest()
     det_req = DetectionRequest(station_id=station_id, search_key=search_key, order_list=order_list)
     det_req.save()
-    rq.enqueue(on_submit, det_req)
+    sess = request.session
+    rq.enqueue(on_submit, det_req, sess)
     return JsonResponse({'detection_id': det_req.id})
 
 

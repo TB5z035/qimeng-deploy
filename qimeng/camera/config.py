@@ -1,2 +1,2 @@
-SHAPE = (3672, 4224, 3)
+SHAPE = (3672, 5488, 3)
 CAMERA_CONFIG_PATH = 'qm.Config'
