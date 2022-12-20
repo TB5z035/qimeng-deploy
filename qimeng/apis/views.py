@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseServerError, HttpResponseBadRequest, HttpRequest, JsonResponse
+from django.views import View
 import json
 import django_rq as rq
 import logging
@@ -34,8 +35,7 @@ def create_det_req(request: HttpRequest):
             return HttpResponseBadRequest()
     det_req = DetectionRequest(station_id=station_id, search_key=search_key, order_list=order_list)
     det_req.save()
-    sess = request.session
-    rq.enqueue(on_submit, det_req, sess)
+    rq.enqueue(on_submit, det_req)
     return JsonResponse({'detection_id': det_req.id})
 
 

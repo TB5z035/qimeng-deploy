@@ -30,7 +30,6 @@ class CameraServerLocal(CameraServer):
         device_info = device_list[0]
         logger.info("\n{}: {} {}".format(device_info, device_info.GetFriendlyName(), device_info.GetPortType()))
 
-        print(device_info)
         self.hCamera = mvsdk.CameraInit(device_info, -1, -1)
         capability = mvsdk.CameraGetCapability(self.hCamera)
         monoCamera = (capability.sIspCapacity.bMonoSensor != 0)
@@ -95,6 +94,7 @@ class CameraServerLocalMP(CameraServerLocal):
             lock.acquire()
             self._get_image(save_buffer)
             lock.release()
+            # if pipe.poll(10):
             pipe.recv()
 
 def start_server_local_serve(buf, lock, pipe, *args, **kwargs):
@@ -111,7 +111,7 @@ def generate_image_mp(station_id: str, start_discard=10, shape=SHAPE):
     img_arr_buf = mp.RawArray('B', _img.nbytes)
     lock = mp.Lock()
     pipe_s, pipe_c = mp.Pipe(duplex=True)
-    camera_process = mp.Process(target=start_server_local_serve, args=[img_arr_buf, lock, pipe_c, station_id, start_discard], daemon=True)
+    camera_process = mp.Process(target=start_server_local_serve, args=[img_arr_buf, lock, pipe_c, station_id, start_discard], daemon=False)
     camera_process.start()
     logger.info('from client: ' + str(pipe_s.recv()))
     while True:
@@ -137,5 +137,10 @@ def test_get_camera_picture(vis=True, method=generate_image_mp):
             im.save(f'/tmp/save{count}.png')
             im.show()
 
+GEN = {
+    '0': generate_image('0') # FIXME
+}
+
 if __name__ == '__main__':
-    test_get_camera_picture(method=generate_image, vis=False)
+    logging.basicConfig(level=logging.INFO)
+    test_get_camera_picture(method=generate_image_mp, vis=False)
