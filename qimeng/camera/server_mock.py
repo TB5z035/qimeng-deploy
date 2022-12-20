@@ -7,7 +7,7 @@ from typing import Optional
 from .config import SHAPE
 
 
-def get_camera_image(station_id: str, save_buffer=None, time_limit: int = 10) -> Optional[np.ndarray]:
+def get_camera_image(station_id: str, save_buffer=None, time_limit: int = 100) -> Optional[np.ndarray]:
 
     @timeout(time_limit)
     def _get_image():
@@ -15,12 +15,13 @@ def get_camera_image(station_id: str, save_buffer=None, time_limit: int = 10) ->
         share_arr = np.ndarray(SHAPE, buffer=save_buffer, dtype=np.uint8)
         image_arr = np.asarray(Image.open('camera/test.png'), dtype=np.uint8)
         np.copyto(share_arr, image_arr)
+        return share_arr
 
-    try:
-        return _get_image()
-    except TimeoutError:
-        return None
-
+    while True:
+        try:
+            yield _get_image()
+        except TimeoutError:
+            yield None
 
 def test_get_camera_picture():
     arr = get_camera_image(1)

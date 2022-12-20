@@ -4,3 +4,4 @@
 redis/conf/
 secret.py
 **/redis.conf
+**/build

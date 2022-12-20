@@ -5,3 +5,4 @@ Pillow
 yapf
 timeout_decorator
 gunicorn
+opencv-python
