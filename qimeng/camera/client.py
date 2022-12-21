@@ -1,33 +1,30 @@
 from . import mvsdk
+from .config import *
 import logging
-import numpy as np
 from typing import Optional
-from timeout_decorator import timeout, TimeoutError
-from datetime import datetime
-from PIL import Image
-from .config import CAMERA_CONFIG_PATH, SHAPE
+import numpy as np
 import cv2
 import ctypes
-import time
-from .server_base import CameraServer
-import multiprocessing as mp
-# logging.basicConfig(level=logging.INFO)
+import pickle
+from timeout_decorator import timeout
+import zerorpc
+
 logger = logging.getLogger('camera')
 
 
-class CameraServerLocal(CameraServer):
+class CameraClient:
     TIMEOUT = 10
 
-    def __init__(self, station_id: str, start_discard: int = 10) -> None:
+    def __init__(self, station_id: str, camera_sn: str, start_discard: int = 10) -> None:
+        self.station_id = station_id
         self.start_discard = start_discard
-        # Check number of cameras. only supports connecting with 1 camera
+        self.camera_sn = camera_sn
+
+        # Check number of cameras
         device_list = mvsdk.CameraEnumerateDevice()
-        num_devices = len(device_list)
-        if num_devices == 0:
-            raise RuntimeError('Camera not found')
-        if num_devices > 1:
-            raise NotImplementedError('Multiple cameras are not currently supported')
-        device_info = device_list[0]
+        devices = [i for i in device_list if i.acSn.decode() == camera_sn]
+        assert len(devices) == 1, f'{len(devices)} camera exist with SN {camera_sn}'
+        device_info = devices[0]
         logger.info("\n{}: {} {}".format(device_info, device_info.GetFriendlyName(), device_info.GetPortType()))
 
         self.hCamera = mvsdk.CameraInit(device_info, -1, -1)
@@ -85,7 +82,7 @@ class CameraServerLocal(CameraServer):
             return None
 
 
-class CameraServerLocalMP(CameraServerLocal):
+class CameraClientMP(CameraClient):
 
     def serve_image(self, save_buffer, lock, pipe) -> None:
         lock.acquire()
@@ -96,78 +93,46 @@ class CameraServerLocalMP(CameraServerLocal):
             lock.acquire()
             self._get_image(save_buffer)
             lock.release()
-            # if pipe.poll(10):
-            # pipe.recv()
-            time.sleep(0.001)
+            pipe.recv()
+
+class CameraClientRPC(CameraClient):
+    def __init__(self, station_id: str, camera_sn: str, start_discard: int = 10, station_url=None, server_port=None) -> None:
+        super().__init__(station_id, camera_sn, start_discard)
+        assert station_url is not None
+        assert server_port is not None
+        client = zerorpc.Client(SERVER_URL)
+        client.register_rpc(station_id, station_url)
+        client.close()
+        self.station_url = station_url
+        self.server_port = server_port
+
+    def serve(self):
+        server = zerorpc.Server(self)
+        server.bind(f"tcp://0.0.0.0:{self.server_port}")
+        logger.info(f'Camera client serving at {self.station_url}')
+        try:
+            server.run()
+        except Exception as e:
+            logger.error(str(type(e)) + ': ' + str(e))
+        finally:
+            server.close()
+
+    def get_image(self, save_buffer=None) -> Optional[bytes]:
+        return pickle.dumps(super().get_image(save_buffer))
+    
+    def __del__(self):
+        client = zerorpc.Client(SERVER_URL)
+        client.unregister_rpc(self.station_id)
+        client.close()
+        return super().__del__()
 
 
-def start_server_local_serve(buf, lock, pipe, *args, **kwargs):
-    server = CameraServerLocalMP(*args, **kwargs)
+def camera_client_serve(buf, lock, pipe, *args, **kwargs):
+    server = CameraClientMP(*args, **kwargs)
     server.serve_image(buf, lock, pipe)
 
-
-def generate_image(station_id: str, start_discard=10):
-    camera = CameraServerLocal(station_id, start_discard)
-    while True:
-        yield camera.get_image()
-
-import pickle
-class ImageServeRPC:
-    def __init__(self, station_id, start_discard=10, shape=SHAPE) -> None:
-        _img = np.ndarray(shape, dtype=np.uint8)
-        self.img_arr_buf = mp.RawArray('B', _img.nbytes)
-        self.lock = mp.Lock()
-        self.pipe_s, pipe_c = mp.Pipe(duplex=True)
-        camera_process = mp.Process(
-            target=start_server_local_serve, args=[self.img_arr_buf, self.lock, pipe_c, station_id, start_discard], daemon=False)
-        camera_process.start()
-        logger.info('from client: ' + str(self.pipe_s.recv()))
-    
-    def _get_image(self):
-        self.pipe_s.send(1)
-        self.lock.acquire()
-        image_arr = cv2.cvtColor(np.frombuffer(self.img_arr_buf, dtype=np.uint8).reshape(SHAPE), cv2.COLOR_BGR2RGB)
-        self.lock.release()
-        return image_arr
-    
-    def get_image(self):
-        return pickle.dumps(self._get_image())
-    
-    def yield_image(self):
-        while True:
-            yield self._get_image()
-        
-def generate_image_mp(station_id: str, start_discard=10, shape=SHAPE):
-    image_server = ImageServeRPC(station_id, start_discard, shape)
-    yield from image_server.yield_image()
-
-def test_get_camera_picture(vis=True, method=generate_image_mp):
-    count = 0
-    it = method('', 10)
-    while True:
-        start = datetime.now()
-        frame = next(it)
-        end = datetime.now()
-        delta = end - start
-        time.sleep(1)
-        count += 1
-        logger.info(f"#{count:04d} spent {delta.seconds * 1000 + delta.microseconds // 1000} ms")
-        if vis:
-            im = Image.fromarray(frame)
-            im.save(f'/tmp/save{count}.png')
-            im.show()
-
-
-# GEN = {
-#     '0':
-#         generate_image('0')  # FIXME
-# }
-
-import zerorpc
 if __name__ == '__main__':
-    # logging.basicConfig(level=logging.INFO)
-    # test_get_camera_picture(method=generate_image_mp, vis=False)
-
-    rpc_server = zerorpc.Server(ImageServeRPC('0'))
-    rpc_server.bind('tcp://127.0.0.1:4242')
-    rpc_server.run()
+    logging.basicConfig(level=logging.INFO)
+    station_id = '1'
+    camera = CameraClientRPC(station_id, "042081520009", server_port='8383', station_url=f'tcp://camera-client-test:8383')
+    camera.serve()

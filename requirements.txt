@@ -6,3 +6,4 @@ yapf
 timeout_decorator
 gunicorn
 opencv-python
+zerorpc

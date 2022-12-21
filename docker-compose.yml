@@ -1,0 +1,43 @@
+services:
+  web:
+    hostname: web
+    build: .
+    command: gunicorn --bind=0.0.0.0 qimeng.wsgi
+    ports:
+      - 8000:8000
+    networks:
+      - inner
+    depends_on:
+      - camera-server
+      - worker
+      - redis
+  worker:
+    hostname: worker
+    build: .
+    command: python manage.py rqworker
+    networks:
+      - inner
+    depends_on:
+      - redis
+  camera-server:
+    hostname: camera-server
+    build: .
+    command: python -m camera.server
+    privileged: true
+    networks:
+      - inner
+  camera-client-example:
+    hostname:
+  redis:
+    hostname: redis
+    image: redis:7.0.7
+    command: redis-server /etc/redis/redis.conf
+    networks:
+      - inner
+    volumes:
+      - ./redis:/etc/redis:ro
+
+networks:
+  inner:
+    # external: true
+    # name: host

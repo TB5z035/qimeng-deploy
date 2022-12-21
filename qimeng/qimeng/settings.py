@@ -43,7 +43,7 @@ INSTALLED_APPS = [
 
 RQ_QUEUES = {
     'default': {
-        'HOST': '127.0.0.1',
+        'HOST': 'redis',
         'PORT': 6379,
         'DB': 0,
         'PASSWORD': REDIS_PASSWD,

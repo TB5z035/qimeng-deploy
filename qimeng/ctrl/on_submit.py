@@ -12,6 +12,8 @@ import zerorpc
 
 from .config import *
 
+from camera.config import *
+
 logger = logging.getLogger('handler')
 
 
@@ -37,6 +39,7 @@ class Brick:
 
 
 class Timer(object):
+
     def __init__(self, name):
         self.names = []
         self.logger = logging.getLogger(f'timer({name})')
@@ -55,33 +58,22 @@ class Timer(object):
             self.logger.info(f"{self.names[i]:10} spent {delta.seconds * 1000 + delta.microseconds // 1000} ms")
 
 
-# GEN = None
-
-
 def on_submit(det_req: DetectionRequest):
-    # global GEN
-    # if GEN is None:
-    #     from camera.server_local import GEN
-    #     print(GEN)
     now = datetime.now()
     try:
         assert det_req.result is None
 
         with Timer('whole process') as timer:
-            logger.info('Started processing')
-            # start = datetime.now()
             det_req.status = DetectionRequest.RUNNING
             det_req.save()
+            logger.info('Started processing')
 
-            # if det_req.station_id not in self.sess:
-            # self.sess[det_req.station_id] = generate_image_mp(det_req.station_id)
-            # logger.info(GEN)
-            # image_arr = next(GEN[det_req.station_id])
-            camera_client = zerorpc.Client(CAMERA_RPC_URL)
-            image_arr = pickle.loads(camera_client.get_image())
+            camera_client = zerorpc.Client(SERVER_URL)
+            image_arr = pickle.loads(camera_client.get_image(det_req.station_id))
+            assert image_arr is not None
+            # Image.fromarray(image_arr).save(f'/tmp/save-{det_req.station_id}.png')
             timer.tick('camera')
 
-            # Image.fromarray(image_arr).save('/tmp/save.png')
             # Search orderlist
             if det_req.order_list is not None:
                 logger.info('order_list exists. Start unserializing')
