@@ -1,6 +1,5 @@
 from typing import List, Optional
 import numpy as np
-from camera.config import SHAPE
 from apis.models import DetectionRequest
 import json
 import time
@@ -8,7 +7,10 @@ import multiprocessing as mp
 import logging
 from datetime import datetime
 import pickle
+from PIL import Image
 import zerorpc
+
+from .config import *
 
 logger = logging.getLogger('handler')
 
@@ -34,47 +36,73 @@ class Brick:
         return str((self._shape, self._color))
 
 
-GEN = None
+class Timer(object):
+    def __init__(self, name):
+        self.names = []
+        self.logger = logging.getLogger(f'timer({name})')
+
+    def tick(self, name):
+        self.steps.append(datetime.now())
+        self.names.append(name)
+
+    def __enter__(self):
+        self.steps = [datetime.now()]
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for i in range(len(self.names)):
+            delta = self.steps[i + 1] - self.steps[i]
+            self.logger.info(f"{self.names[i]:10} spent {delta.seconds * 1000 + delta.microseconds // 1000} ms")
+
+
+# GEN = None
+
+
 def on_submit(det_req: DetectionRequest):
-    global GEN
-    if GEN is None:
-        from camera.server_local import GEN
-        print(GEN)
+    # global GEN
+    # if GEN is None:
+    #     from camera.server_local import GEN
+    #     print(GEN)
     now = datetime.now()
     try:
         assert det_req.result is None
 
-        logger.info('Started shotting')
-        det_req.status = DetectionRequest.RUNNING
-        det_req.save()
-        
-        # if det_req.station_id not in self.sess:
+        with Timer('whole process') as timer:
+            logger.info('Started processing')
+            # start = datetime.now()
+            det_req.status = DetectionRequest.RUNNING
+            det_req.save()
+
+            # if det_req.station_id not in self.sess:
             # self.sess[det_req.station_id] = generate_image_mp(det_req.station_id)
-        print(GEN)
-        image_arr = next(GEN[det_req.station_id])
+            # logger.info(GEN)
+            # image_arr = next(GEN[det_req.station_id])
+            camera_client = zerorpc.Client(CAMERA_RPC_URL)
+            image_arr = pickle.loads(camera_client.get_image())
+            timer.tick('camera')
 
-        # Search orderlist
-        if det_req.order_list is not None:
-            logger.info('order_list exists. Start unserializing')
-            brick_list = parse_list(det_req.order_list)
-        elif det_req.search_key is not None:
-            logger.info('search_key exists. Start searching')
-            brick_list = search_list(det_req.search_key)
-        else:
-            brick_list = None
+            # Image.fromarray(image_arr).save('/tmp/save.png')
+            # Search orderlist
+            if det_req.order_list is not None:
+                logger.info('order_list exists. Start unserializing')
+                brick_list = parse_list(det_req.order_list)
+            elif det_req.search_key is not None:
+                logger.info('search_key exists. Start searching')
+                brick_list = search_list(det_req.search_key)
+            else:
+                brick_list = None
+            timer.tick('search')
 
-        # Detection
-        detection_client = zerorpc.Client('tcp://192.168.0.79:4242')
-        result = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
-        # result = detection(image_arr, brick_list)
-        logger.info(result)
-        logger.info('Finished inferencing')
-        result = {str(i): str((result[i][:, 5] > 0.5).sum()) for i in range(len(result))} # include class map
-        det_req.status = DetectionRequest.FINISHED
-        det_req.result = json.dumps(result)
-        # det_req.result = json.dumps([i.as_tuple() for i in result])
-        det_req.save()
-        logger.info('Finished detection')
+            # Detection
+            detection_client = zerorpc.Client(ALGORITHM_RPC_URL)
+            result = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
+            logger.info(result)
+            result = {str(i): str((result[i][:, 5] > 0.5).sum()) for i in range(len(result))}  # include class map
+            timer.tick('detection')
+
+            det_req.status = DetectionRequest.FINISHED
+            det_req.result = json.dumps(result)
+            det_req.save()
     except Exception as e:
         logger.error(str(type(e)) + ': ' + str(e))
 

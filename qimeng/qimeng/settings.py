@@ -87,11 +87,15 @@ LOGGING = {
             "exclude": ["%(asctime)s"],
         },
     },
+    'root': {
+        "handlers": ["rq_console"],
+        "level": "DEBUG"
+    },
     'loggers': {
-        "handler": {
-            "handlers": ["rq_console"],
-            "level": "DEBUG"
-        },
+        # "handler": {
+        #     "handlers": ["rq_console"],
+        #     "level": "DEBUG"
+        # },
         "rq.worker": {
             "handlers": ["rq_console"],
             "level": "DEBUG"

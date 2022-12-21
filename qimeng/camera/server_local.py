@@ -5,15 +5,15 @@ from typing import Optional
 from timeout_decorator import timeout, TimeoutError
 from datetime import datetime
 from PIL import Image
-from .config import CAMERA_CONFIG_PATH
+from .config import CAMERA_CONFIG_PATH, SHAPE
 import cv2
-from .config import SHAPE
 import ctypes
 import time
 from .server_base import CameraServer
 import multiprocessing as mp
 # logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('camera')
+
 
 class CameraServerLocal(CameraServer):
     TIMEOUT = 10
@@ -84,7 +84,9 @@ class CameraServerLocal(CameraServer):
         except TimeoutError:
             return None
 
+
 class CameraServerLocalMP(CameraServerLocal):
+
     def serve_image(self, save_buffer, lock, pipe) -> None:
         lock.acquire()
         self._get_image(save_buffer)
@@ -95,31 +97,49 @@ class CameraServerLocalMP(CameraServerLocal):
             self._get_image(save_buffer)
             lock.release()
             # if pipe.poll(10):
-            pipe.recv()
+            # pipe.recv()
+            time.sleep(0.001)
+
 
 def start_server_local_serve(buf, lock, pipe, *args, **kwargs):
     server = CameraServerLocalMP(*args, **kwargs)
     server.serve_image(buf, lock, pipe)
+
 
 def generate_image(station_id: str, start_discard=10):
     camera = CameraServerLocal(station_id, start_discard)
     while True:
         yield camera.get_image()
 
+import pickle
+class ImageServeRPC:
+    def __init__(self, station_id, start_discard=10, shape=SHAPE) -> None:
+        _img = np.ndarray(shape, dtype=np.uint8)
+        self.img_arr_buf = mp.RawArray('B', _img.nbytes)
+        self.lock = mp.Lock()
+        self.pipe_s, pipe_c = mp.Pipe(duplex=True)
+        camera_process = mp.Process(
+            target=start_server_local_serve, args=[self.img_arr_buf, self.lock, pipe_c, station_id, start_discard], daemon=False)
+        camera_process.start()
+        logger.info('from client: ' + str(self.pipe_s.recv()))
+    
+    def _get_image(self):
+        self.pipe_s.send(1)
+        self.lock.acquire()
+        image_arr = cv2.cvtColor(np.frombuffer(self.img_arr_buf, dtype=np.uint8).reshape(SHAPE), cv2.COLOR_BGR2RGB)
+        self.lock.release()
+        return image_arr
+    
+    def get_image(self):
+        return pickle.dumps(self._get_image())
+    
+    def yield_image(self):
+        while True:
+            yield self._get_image()
+        
 def generate_image_mp(station_id: str, start_discard=10, shape=SHAPE):
-    _img = np.ndarray(shape, dtype=np.uint8)
-    img_arr_buf = mp.RawArray('B', _img.nbytes)
-    lock = mp.Lock()
-    pipe_s, pipe_c = mp.Pipe(duplex=True)
-    camera_process = mp.Process(target=start_server_local_serve, args=[img_arr_buf, lock, pipe_c, station_id, start_discard], daemon=False)
-    camera_process.start()
-    logger.info('from client: ' + str(pipe_s.recv()))
-    while True:
-        pipe_s.send(1)
-        lock.acquire()
-        image_arr = cv2.cvtColor(np.frombuffer(img_arr_buf, dtype=np.uint8).reshape(SHAPE), cv2.COLOR_BGR2RGB)
-        lock.release()
-        yield image_arr
+    image_server = ImageServeRPC(station_id, start_discard, shape)
+    yield from image_server.yield_image()
 
 def test_get_camera_picture(vis=True, method=generate_image_mp):
     count = 0
@@ -137,10 +157,17 @@ def test_get_camera_picture(vis=True, method=generate_image_mp):
             im.save(f'/tmp/save{count}.png')
             im.show()
 
-GEN = {
-    '0': generate_image('0') # FIXME
-}
 
+# GEN = {
+#     '0':
+#         generate_image('0')  # FIXME
+# }
+
+import zerorpc
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    test_get_camera_picture(method=generate_image_mp, vis=False)
+    # logging.basicConfig(level=logging.INFO)
+    # test_get_camera_picture(method=generate_image_mp, vis=False)
+
+    rpc_server = zerorpc.Server(ImageServeRPC('0'))
+    rpc_server.bind('tcp://127.0.0.1:4242')
+    rpc_server.run()
