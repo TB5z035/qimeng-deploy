@@ -7,13 +7,26 @@ import cv2
 import ctypes
 import pickle
 from timeout_decorator import timeout
+import time
+import argparse
+import os
 import zerorpc
+import sys
+import random
+import socket
 
 logger = logging.getLogger('camera')
 
 
 class CameraClient:
     TIMEOUT = 10
+
+    @staticmethod
+    def online_camera_sns():
+        device_list = mvsdk.CameraEnumerateDevice()
+        sn_list = [device.acSn.decode() for device in device_list]
+        logger.info('Available devices: \n' + str('\n'.join(sn_list)))
+        return sn_list
 
     def __init__(self, station_id: str, camera_sn: str, start_discard: int = 10) -> None:
         self.station_id = station_id
@@ -22,10 +35,12 @@ class CameraClient:
 
         # Check number of cameras
         device_list = mvsdk.CameraEnumerateDevice()
-        logger.info(device_list)
+        sn_list = [device.acSn.decode() for device in device_list]
+        logger.info('Available devices: \n' + str('\n'.join(sn_list)))
         devices = [i for i in device_list if i.acSn.decode() == camera_sn]
         assert len(devices) == 1, f'{len(devices)} camera exist with SN {camera_sn}'
         device_info = devices[0]
+
         logger.info("\n{}: {} {}".format(device_info, device_info.GetFriendlyName(), device_info.GetPortType()))
 
         self.hCamera = mvsdk.CameraInit(device_info, -1, -1)
@@ -92,10 +107,9 @@ class CameraClientMP(CameraClient):
         pipe.send('init')
         while True:
             lock.acquire()
-            logging.info('ping')
             self._get_image(save_buffer)
             lock.release()
-            pipe.recv()
+            time.sleep(0.1)
 
 class CameraClientRPC(CameraClient):
     def __init__(self, station_id: str, camera_sn: str, start_discard: int = 10, station_url=None, server_port=None) -> None:
@@ -135,6 +149,14 @@ def camera_client_serve(buf, lock, pipe, *args, **kwargs):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    station_id = '1'
-    camera = CameraClientRPC(station_id, "042081520009", server_port='8383', station_url=f'tcp://camera-client-test:8383')
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--station_id', type=str, default=socket.gethostname())
+    parser.add_argument('--port', type=int, default=8383)
+    args = parser.parse_args()
+
+    sn = CameraClient.online_camera_sns()
+    assert len(sn) == 1, "RPC camera client supports only 1 camera"
+    local_sn = sn[0]
+    camera = CameraClientRPC(args.station_id, local_sn, server_port=args.port, station_url=f'tcp://{args.station_id}:{args.port}')
     camera.serve()

@@ -4,6 +4,6 @@ CAMERA_CONFIG_PATH = '/opt/qm.Config'
 SERVER_PORT = 33033
 SERVER_URL = f'tcp://camera-server:{SERVER_PORT}'
 CLIENT_MP_SNS = {
-    # '0': '042051820140',
-    'small': '042121120356',
+    'test0': '042051820140',
+    # 'small': '042121120356',
 }
