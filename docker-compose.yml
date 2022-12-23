@@ -11,6 +11,8 @@ services:
       - camera-server
       - worker
       - redis
+    volumes:
+      - ./share:/share:rw
   worker:
     hostname: worker
     build: .
@@ -19,6 +21,8 @@ services:
       - inner
     depends_on:
       - redis
+    volumes:
+      - ./share:/share:rw
   camera-server:
     hostname: camera-server
     build: .
@@ -26,8 +30,6 @@ services:
     privileged: true
     networks:
       - inner
-  camera-client-example:
-    hostname:
   redis:
     hostname: redis
     image: redis:7.0.7

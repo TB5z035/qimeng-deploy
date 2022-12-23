@@ -71,7 +71,8 @@ def on_submit(det_req: DetectionRequest):
             camera_client = zerorpc.Client(SERVER_URL)
             image_arr = pickle.loads(camera_client.get_image(det_req.station_id))
             assert image_arr is not None
-            # Image.fromarray(image_arr).save(f'/tmp/save-{det_req.station_id}.png')
+            Image.fromarray(image_arr).save(f'/share/save-{det_req.station_id}.png')
+            logger.warning(image_arr.dtype)
             timer.tick('camera')
 
             # Search orderlist
@@ -87,9 +88,11 @@ def on_submit(det_req: DetectionRequest):
 
             # Detection
             detection_client = zerorpc.Client(ALGORITHM_RPC_URL)
+            Image.fromarray(image_arr).save(f'/share/save2-{det_req.station_id}.png')
+            Image.fromarray(pickle.loads(pickle.dumps(image_arr))).save(f'/share/save3-{det_req.station_id}.png')
             result = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
             logger.info(result)
-            result = {str(i): str((result[i][:, 5] > 0.5).sum()) for i in range(len(result))}  # include class map
+            result = {str(i): str((result[i][0][:, 5] > 0.2).sum()) for i in range(len(result))}  # include class map
             timer.tick('detection')
 
             det_req.status = DetectionRequest.FINISHED

@@ -22,6 +22,7 @@ class CameraClient:
 
         # Check number of cameras
         device_list = mvsdk.CameraEnumerateDevice()
+        logger.info(device_list)
         devices = [i for i in device_list if i.acSn.decode() == camera_sn]
         assert len(devices) == 1, f'{len(devices)} camera exist with SN {camera_sn}'
         device_info = devices[0]
@@ -91,6 +92,7 @@ class CameraClientMP(CameraClient):
         pipe.send('init')
         while True:
             lock.acquire()
+            logging.info('ping')
             self._get_image(save_buffer)
             lock.release()
             pipe.recv()
