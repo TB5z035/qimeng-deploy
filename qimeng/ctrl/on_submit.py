@@ -13,6 +13,7 @@ import zerorpc
 from .config import *
 
 from camera.config import *
+from collections import Counter
 
 logger = logging.getLogger('handler')
 
@@ -87,14 +88,21 @@ def on_submit(det_req: DetectionRequest):
 
             # Detection
             detection_client = zerorpc.Client(ALGORITHM_RPC_URL)
-            result = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
-            logger.info(result)
-            result = {str(i): str((result[i][0][:, 5] > 0.2).sum()) for i in range(len(result))}  # include class map
+            shape_results, color_results = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
+            logger.info('Predictions: \n' + '\n'.join([f"{shape}, {color}" for shape, color in zip(shape_results, color_results)]))
+            shape_final_list = Counter(shape_results).most_common()
+            color_final_list = Counter(color_results).most_common()
+            
+            if len(shape_final_list) == 0 or len(color_final_list) == 0:
+                det_req.status = DetectionRequest.FINISHED
+                det_req.result = json.dumps([])
+                det_req.save()
+            else:
+                result = str(shape_final_list[0][0]) + ' | ' + color_final_list[0][0]
+                det_req.status = DetectionRequest.FINISHED
+                det_req.result = json.dumps(result)
+                det_req.save()
             timer.tick('detection')
-
-            det_req.status = DetectionRequest.FINISHED
-            det_req.result = json.dumps(result)
-            det_req.save()
     except Exception as e:
         logger.error(str(type(e)) + ': ' + str(e))
 
