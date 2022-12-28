@@ -12,7 +12,6 @@ services:
       - worker
       - redis
       - db
-      - sleep
     volumes:
       - ./share:/share:rw
   worker:
@@ -32,6 +31,8 @@ services:
     privileged: true
     networks:
       - inner
+    ports:
+      - 33033:33033
     volumes:
       - ./share:/share:rw
   redis:
@@ -53,11 +54,6 @@ services:
       TZ: Asia/Shanghai
     networks:
       - inner
-  sleep: # This is a workaround to prevent migration starting before database init finish
-    image: alpine
-    command: sleep 5
-    depends_on:
-      - db
 
 networks:
   inner:
