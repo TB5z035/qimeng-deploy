@@ -15,7 +15,7 @@ import sys
 import random
 import socket
 
-logger = logging.getLogger('camera')
+logger = logging.getLogger('Camera Client')
 
 
 class CameraClient:
@@ -111,8 +111,15 @@ class CameraClientMP(CameraClient):
             lock.release()
             time.sleep(0.1)
 
+
 class CameraClientRPC(CameraClient):
-    def __init__(self, station_id: str, camera_sn: str, start_discard: int = 10, station_url=None, server_port=None) -> None:
+
+    def __init__(self,
+                 station_id: str,
+                 camera_sn: str,
+                 start_discard: int = 10,
+                 station_url=None,
+                 server_port=None) -> None:
         super().__init__(station_id, camera_sn, start_discard)
         assert station_url is not None
         assert server_port is not None
@@ -135,7 +142,7 @@ class CameraClientRPC(CameraClient):
 
     def get_image(self, save_buffer=None) -> Optional[bytes]:
         return pickle.dumps(super().get_image(save_buffer))
-    
+
     def __del__(self):
         client = zerorpc.Client(SERVER_URL)
         client.unregister_rpc(self.station_id)
@@ -146,6 +153,7 @@ class CameraClientRPC(CameraClient):
 def camera_client_serve(buf, lock, pipe, *args, **kwargs):
     server = CameraClientMP(*args, **kwargs)
     server.serve_image(buf, lock, pipe)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
@@ -158,5 +166,6 @@ if __name__ == '__main__':
     sn = CameraClient.online_camera_sns()
     assert len(sn) == 1, "RPC camera client supports only 1 camera"
     local_sn = sn[0]
-    camera = CameraClientRPC(args.station_id, local_sn, server_port=args.port, station_url=f'tcp://{args.station_id}:{args.port}')
+    camera = CameraClientRPC(
+        args.station_id, local_sn, server_port=args.port, station_url=f'tcp://{args.station_id}:{args.port}')
     camera.serve()

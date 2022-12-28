@@ -6,11 +6,14 @@ from PIL import Image
 from .config import *
 from .client import CameraClient, camera_client_serve
 import cv2
+import json
 import pickle
 import time
 import multiprocessing as mp
 import zerorpc
-logger = logging.getLogger('camera')
+
+logger = logging.getLogger('Camera Server')
+
 
 class ImageServer:
     URL = f"tcp://0.0.0.0:{SERVER_PORT}"
@@ -21,9 +24,14 @@ class ImageServer:
         self.locks = {}
         self.img_arr_buf = {}
         self.pipes = {}
+        with open('/share/server_side_camera.json') as f:
+            CLIENT_MP_SNS = json.load(f)
+        sns = CameraClient.online_camera_sns()
         for station_id, dev in CLIENT_MP_SNS.items():
-            self.register_mp(station_id, dev)
-
+            if dev not in sns:
+                logger.warning(f"Camera with sn({dev}) not found!")
+            else:
+                self.register_mp(station_id, dev)
 
     def register_mp(self, station_id, device_sn, shape=SHAPE):
         _img = np.ndarray(shape, dtype=np.uint8)
@@ -52,7 +60,7 @@ class ImageServer:
         self.stations_type[station_id] = 'rpc'
         logger.info(f"Station registered with ID {station_id} at {station_url}")
         return True
-    
+
     def unregister_rpc(self, station_id: str) -> bool:
         if station_id not in self.stations or self.stations_type[station_id] != 'rpc':
             logger.error(f"Illegal unregistration")
@@ -92,6 +100,7 @@ class ImageServer:
         server = zerorpc.Server(self)
         server.bind(self.URL)
         server.run()
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

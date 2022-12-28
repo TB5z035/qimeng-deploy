@@ -30,6 +30,8 @@ services:
     privileged: true
     networks:
       - inner
+    volumes:
+      - ./share:/share:rw
   redis:
     hostname: redis
     image: redis:7.0.7
