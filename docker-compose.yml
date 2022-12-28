@@ -2,7 +2,7 @@ services:
   web:
     hostname: web
     build: .
-    command: gunicorn --bind=0.0.0.0 qimeng.wsgi
+    command: bash ./start.sh
     ports:
       - 8000:8000
     networks:
@@ -11,6 +11,8 @@ services:
       - camera-server
       - worker
       - redis
+      - db
+      - sleep
     volumes:
       - ./share:/share:rw
   worker:
@@ -40,6 +42,22 @@ services:
       - inner
     volumes:
       - ./redis:/etc/redis:ro
+  db:
+    image: mysql:8.0.31-debian
+    hostname: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./mysql/mysql.cnf:/etc/my.cnf
+    environment:
+      MYSQL_ROOT_PASSWORD: ddi3239h8#LUlJ#O@#J
+      TZ: Asia/Shanghai
+    networks:
+      - inner
+  sleep: # This is a workaround to prevent migration starting before database init finish
+    image: alpine
+    command: sleep 5
+    depends_on:
+      - db
 
 networks:
   inner:

@@ -5,8 +5,6 @@ from django.db import models
 
 class DetectionRequest(models.Model):
     SUBMITTED = 'SUBMITTED'
-    SHOTTING = 'SHOTTING'
-    SEARCHING = 'SEARCHING'
     RUNNING = 'RUNNING'
     FINISHED = 'FINISHED'
     ERROR = 'ERROR'

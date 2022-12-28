@@ -60,7 +60,6 @@ class Timer(object):
 
 
 def on_submit(det_req: DetectionRequest):
-    now = datetime.now()
     try:
         assert det_req.result is None
 
@@ -69,8 +68,10 @@ def on_submit(det_req: DetectionRequest):
             det_req.save()
             logger.info('Started processing')
 
-            camera_client = zerorpc.Client(SERVER_URL)
-            image_arr = pickle.loads(camera_client.get_image(det_req.station_id))
+            # camera_client = zerorpc.Client(SERVER_URL)
+            # image_arr = pickle.loads(camera_client.get_image(det_req.station_id))
+            image_arr = np.asarray(Image.open('/share/example.png'))
+            # image_arr = np.asarray(Image.open('/home/tb5zhh/workspace/lego-deploy/share/example.png'))
             assert image_arr is not None
             # Image.fromarray(image_arr).save(f'/share/save-{det_req.station_id}-{datetime.now().strftime("%c")}.png')
             timer.tick('camera')
@@ -94,20 +95,17 @@ def on_submit(det_req: DetectionRequest):
             color_final_list = Counter(color_results).most_common()
             
             if len(shape_final_list) == 0 or len(color_final_list) == 0:
-                det_req.status = DetectionRequest.FINISHED
                 det_req.result = json.dumps([])
-                det_req.save()
             else:
                 result = str(shape_final_list[0][0]) + ' | ' + color_final_list[0][0]
-                det_req.status = DetectionRequest.FINISHED
                 det_req.result = json.dumps(result)
-                det_req.save()
+            det_req.status = DetectionRequest.FINISHED
+            det_req.save()
             timer.tick('detection')
     except Exception as e:
         logger.error(str(type(e)) + ': ' + str(e))
-
-    new_now = datetime.now()
-    logger.info(f"Spent {(new_now - now).seconds * 1000 + (new_now - now).microseconds // 1000 } ms")
+        det_req.status = DetectionRequest.ERROR
+        det_req.save()
 
 
 def parse_list(buffer: str) -> List[Brick]:

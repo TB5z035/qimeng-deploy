@@ -7,3 +7,4 @@ timeout_decorator
 gunicorn
 opencv-python
 zerorpc
+mysqlclient

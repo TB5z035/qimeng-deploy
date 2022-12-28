@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
-from .secret import REDIS_PASSWD
+from .secret import REDIS_PASSWD, MYSQL_PASSWD
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-+^xk1k53$a27qn&8iog_tf^gqi8237cr#hb4yb^$drs9!o(33e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.0.79', 'localhost']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -49,16 +49,6 @@ RQ_QUEUES = {
         'PASSWORD': REDIS_PASSWD,
         'DEFAULT_TIMEOUT': 360,
     },
-    # 'with-sentinel': {
-    #     'SENTINELS': [('localhost', 26736), ('localhost', 26737)],
-    #     'MASTER_NAME': 'redismaster',
-    #     'DB': 0,
-    #     'PASSWORD': 'secret',
-    #     'SOCKET_TIMEOUT': None,
-    #     'CONNECTION_KWARGS': {
-    #         'socket_connect_timeout': 0.3
-    #     },
-    # },
     'high': {
         'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
         'DEFAULT_TIMEOUT': 500,
@@ -138,8 +128,12 @@ WSGI_APPLICATION = 'qimeng.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'mysql',
+        'USER': 'root',
+        'PASSWORD': MYSQL_PASSWD,
+        'HOST': 'mysql',
+        'PORT': 3306,
     }
 }
 
