@@ -95,10 +95,10 @@ def on_submit(det_req: DetectionRequest):
             color_final_list = Counter(color_results).most_common()
             
             if len(shape_final_list) == 0 or len(color_final_list) == 0:
-                det_req.result = json.dumps([])
+                det_req.result = json.dumps({"shape": [], "color": []})
             else:
-                result = str(shape_final_list[0][0]) + ' | ' + color_final_list[0][0]
-                det_req.result = json.dumps(result)
+                result = {"shape": [shape_final_list[0][0]], "color": [color_final_list[0][0]]}
+                det_req.result = json.dumps(result, ensure_ascii=False)
             det_req.status = DetectionRequest.FINISHED
             det_req.save()
             timer.tick('detection')
