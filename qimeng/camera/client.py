@@ -1,5 +1,4 @@
 from . import mvsdk
-from .config import *
 import logging
 from typing import Optional
 import numpy as np
@@ -13,10 +12,14 @@ import os
 import zerorpc
 import sys
 import random
+import json
 import socket
 
 logger = logging.getLogger('Camera Client')
-
+with open('/share/settings.json') as f:
+    d = json.load(f)
+    SERVER_URL = d['camera_server_url']
+    CAMERA_CONFIG_PATH = d['camera_config']
 
 class CameraClient:
     TIMEOUT = 10
@@ -150,7 +153,7 @@ class CameraClientRPC(CameraClient):
             server.close()
 
     def get_image(self, save_buffer=None) -> Optional[bytes]:
-        return pickle.dumps(super().get_image(save_buffer))
+        return pickle.dumps(super()._get_image(save_buffer))
 
     def __del__(self):
         client = zerorpc.Client(SERVER_URL)

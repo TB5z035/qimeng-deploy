@@ -3,7 +3,6 @@ import numpy as np
 from typing import Optional
 from datetime import datetime
 from PIL import Image
-from .config import *
 from .client import CameraClient, camera_client_serve
 import cv2
 import json
@@ -13,7 +12,10 @@ import multiprocessing as mp
 import zerorpc
 
 logger = logging.getLogger('Camera Server')
-
+with open('/share/settings.json') as f:
+    d = json.load(f)
+    SERVER_PORT = d['camera_server_port']
+    SHAPE = d['image_shape']
 
 class ImageServer:
     URL = f"tcp://0.0.0.0:{SERVER_PORT}"
@@ -24,8 +26,8 @@ class ImageServer:
         self.locks = {}
         self.img_arr_buf = {}
         self.pipes = {}
-        with open('/share/server_side_camera.json') as f:
-            CLIENT_MP_SNS = json.load(f)
+        with open('/share/settings.json') as f:
+            CLIENT_MP_SNS = json.load(f)['server_side_cameras']
         sns = CameraClient.online_camera_sns()
         for station_id, dev in CLIENT_MP_SNS.items():
             if dev not in sns:

@@ -1,0 +1,15 @@
+{
+    "server_side_cameras": {
+
+    },
+    "camera_server_url": "tcp://192.168.0.120:33033",
+    "camera_server_url_local": "tcp://camera-server:33033",
+    "camera_server_port": 33033,
+    "algorithm_rpc_url": "tcp://192.168.0.79:4242",
+    "camera_config": "/share/qm.Config",
+    "image_shape": [
+        2348,
+        3376,
+        3
+    ]
+}

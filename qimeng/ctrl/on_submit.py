@@ -10,13 +10,14 @@ import pickle
 from PIL import Image
 import zerorpc
 
-from .config import *
-
-from camera.config import *
 from collections import Counter
 
 logger = logging.getLogger('handler')
 
+with open('/share/settings.json') as f:
+    d = json.load(f)
+    ALGORITHM_RPC_URL = d['algorithm_rpc_url']
+    SERVER_URL = d['camera_server_url_local']
 
 class Brick:
 
@@ -68,9 +69,9 @@ def on_submit(det_req: DetectionRequest):
             det_req.save()
             logger.info('Started processing')
 
-            # camera_client = zerorpc.Client(SERVER_URL)
-            # image_arr = pickle.loads(camera_client.get_image(det_req.station_id))
-            image_arr = np.asarray(Image.open('/share/example.png'))
+            camera_client = zerorpc.Client(SERVER_URL)
+            image_arr = pickle.loads(camera_client.get_image(det_req.station_id))
+            # image_arr = np.asarray(Image.open('/share/example.png'))
             # image_arr = np.asarray(Image.open('/home/tb5zhh/workspace/lego-deploy/share/example.png'))
             assert image_arr is not None
             # Image.fromarray(image_arr).save(f'/share/save-{det_req.station_id}-{datetime.now().strftime("%c")}.png')
