@@ -28,7 +28,7 @@ class CameraClient:
         logger.info('Available devices: \n' + str('\n'.join(sn_list)))
         return sn_list
 
-    def __init__(self, station_id: str, camera_sn: str, start_discard: int = 10) -> None:
+    def __init__(self, station_id: str, camera_sn: str, start_discard: int = 10, denoising=True) -> None:
         self.station_id = station_id
         self.start_discard = start_discard
         self.camera_sn = camera_sn
@@ -52,7 +52,11 @@ class CameraClient:
         mvsdk.CameraPlay(self.hCamera)
 
         # Disable denoising by multiple exposures
-        mvsdk.CameraSetDenoise3DParams(self.hCamera, 0, 4, 0)
+        self.denoising = denoising
+        if denoising:
+            mvsdk.CameraSetDenoise3DParams(self.hCamera, 1, 4, (0.25, 0.25, 0.25, 0.25))
+        else:
+            mvsdk.CameraSetDenoise3DParams(self.hCamera, 0, 4, 0)
 
         FrameBufferSize = (
             capability.sResolutionRange.iWidthMax * capability.sResolutionRange.iHeightMax * (1 if monoCamera else 3))
@@ -73,14 +77,19 @@ class CameraClient:
 
     @timeout(TIMEOUT)
     def _get_image(self, save_buffer=None):
-        # time.sleep(3)
-        self.pRawData, self.FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 200)
+
+        def shot(self):
+            self.pRawData, self.FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 200)
+            mvsdk.CameraImageProcess(self.hCamera, self.pRawData, buffer, self.FrameHead)
+            mvsdk.CameraReleaseImageBuffer(self.hCamera, self.pRawData)
+
         if save_buffer is not None:
             buffer = ctypes.addressof(save_buffer)
         else:
             buffer = self.pFrameBuffer
-        mvsdk.CameraImageProcess(self.hCamera, self.pRawData, buffer, self.FrameHead)
-        mvsdk.CameraReleaseImageBuffer(self.hCamera, self.pRawData)
+
+        for _ in range(4 if self.denoising else 1):
+            shot(self)
         frame_data = (mvsdk.c_ubyte * self.FrameHead.uBytes).from_address(buffer)
         frame = np.frombuffer(frame_data, dtype=np.uint8)
         if save_buffer is not None:
