@@ -202,4 +202,44 @@ Response example:
 success
 ```
 
-### `POST apis/
+### `GET apis/list_bricks/`
+
+> Get the bricks in use.
+
+Response example:
+
+```shell
+02.07.0202.10.45 | 红
+```
+
+### `POST apis/update_bricks/`
+
+> Delete all current bricks in the system and replace with a new list 
+
+Request example:
+
+```python
+import requests
+import json
+url = "127.0.0.1:8000/apis/update_bricks/"
+payload = json.dumps({
+  "bricks": [
+    [
+      "02.07.0202.10.45",
+      "红"
+    ]
+  ]
+})
+headers = {
+  'Content-Type': 'application/json'
+}
+response = requests.request("POST", url, headers=headers, data=payload)
+
+```
+
+Response example:
+
+```shell
+success
+```
+
