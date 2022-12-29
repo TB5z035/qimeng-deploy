@@ -21,7 +21,7 @@ def test(request):
 
 def test_bricks(request):
     bricks = Brick.objects.all()
-    return HttpResponse('\n'.join([i.shape + ' | ' + i.color for i in bricks]))
+    return HttpResponse('\n'.join([i.name + ' | ' + i.shape + ' | ' + i.color for i in bricks]))
 
 def update_bricks(request):
     if request.method != 'POST':

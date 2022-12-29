@@ -209,7 +209,7 @@ success
 Response example:
 
 ```shell
-02.07.0202.10.45 | 红
+圆形件 | 02.07.0202.10.45 | 红
 ```
 
 ### `POST apis/update_bricks/`
@@ -225,8 +225,9 @@ url = "127.0.0.1:8000/apis/update_bricks/"
 payload = json.dumps({
   "bricks": [
     [
+      "圆形件",
       "02.07.0202.10.45",
-      "红"
+      "彩色的"
     ]
   ]
 })
