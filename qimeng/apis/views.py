@@ -5,9 +5,10 @@ import json
 import django_rq as rq
 import logging
 
-from .models import DetectionRequest
+from .models import DetectionRequest, Brick
 from ctrl.on_submit import on_submit
 
+logger = logging.getLogger('django.views')
 
 # Create your views here.
 def ping(request):
@@ -18,6 +19,21 @@ def test(request):
     det_reqs = DetectionRequest.objects.all()
     return HttpResponse('\n'.join(([str(i) for i in det_reqs])))
 
+def test_bricks(request):
+    bricks = Brick.objects.all()
+    return HttpResponse('\n'.join([i.shape + ' | ' + i.color for i in bricks]))
+
+def update_bricks(request):
+    if request.method != 'POST':
+        return HttpResponseBadRequest()
+    try:
+        info = json.loads(request.body.decode())
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('invalid json')
+    Brick.objects.all().delete()
+    for shape, color in info['bricks']:
+        Brick(shape=shape, color=color).save()
+    return HttpResponse('success')
 
 def create_det_req(request: HttpRequest):
     if request.method != 'POST':
@@ -58,5 +74,3 @@ def clear(request):
     return HttpResponse('success')
 
 
-def update_list(request):
-    return ...

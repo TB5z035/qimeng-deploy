@@ -92,6 +92,9 @@ def on_submit(det_req: DetectionRequest):
             detection_client = zerorpc.Client(ALGORITHM_RPC_URL)
             shape_results, color_results = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
             logger.info('Predictions: \n' + '\n'.join([f"{shape}, {color}" for shape, color in zip(shape_results, color_results)]))
+
+            
+
             shape_final_list = Counter(shape_results).most_common()
             color_final_list = Counter(color_results).most_common()
             

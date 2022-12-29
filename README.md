@@ -43,6 +43,34 @@ E==USB 3.0===C1;
 * Docker
 * Docker compose
 
+### Prepare setting file (`settings.json`)
+
+```json
+{
+    "server_side_cameras": {
+		"camera": "042121120356"
+    },
+    "camera_server_url": "tcp://192.168.0.120:33033",
+    "camera_server_url_local": "tcp://camera-server:33033",
+    "camera_server_port": 33033,
+    "algorithm_rpc_url": "tcp://192.168.0.79:4242",
+    "camera_config": "/share/qm.Config",
+    "image_shape": [
+        2348,
+        3376,
+        3
+    ]
+}
+```
+
+* `server_side_cameras`: name and SN number of the camera connected to the server machine
+* `camera_server_url`: the URL for camera RPC server
+* `camera_server_url_local`: the URL for camera RPC server in docker network
+* `camera_server_port`: the port for camera RPC server
+* `algorithm_rpc_url`: the URL for algorithm RPC
+* `camera_config`: the absolute path to camera config
+* `image_shape`: the shape of shotted image
+
 ### Deploy Server
 
 To deploy service server and also camera server (`Server` part in the graph above):
@@ -53,7 +81,13 @@ docker compose up --scale worker=8
 
 ### Deploy RPC Camera Client (Optional)
 
-==TODO==
+Put camera config `qm.Config` and setting `settings.json` in `/share`. Then run:
+
+```shell
+ADDR=192.168.0.120
+PORT=55555
+docker run -v /share:/share --rm -it --name camera -p $PORT:$PORT --privileged tb5zhh/qimeng-deploy:latest python -m camera.client --station_id $ADDR --port $PORT
+```
 
 ### Deploy Algorithm
 
@@ -168,3 +202,4 @@ Response example:
 success
 ```
 
+### `POST apis/
