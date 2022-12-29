@@ -31,8 +31,8 @@ def update_bricks(request):
     except json.JSONDecodeError:
         return HttpResponseBadRequest('invalid json')
     Brick.objects.all().delete()
-    for shape, color in info['bricks']:
-        Brick(shape=shape, color=color).save()
+    for name, shape, color in info['bricks']:
+        Brick(name=name, shape=shape, color=color).save()
     return HttpResponse('success')
 
 def create_det_req(request: HttpRequest):

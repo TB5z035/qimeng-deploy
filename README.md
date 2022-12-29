@@ -133,12 +133,15 @@ Response example:
 Request example:
 
 ```python
-# Python 3
 import requests
 url = "127.0.0.1:8000/apis/create/"
-payload='station_id=test0'
-headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+# x-www-form-urlencoded
+payload='station_id=test&search_key=%E6%B5%8B%E8%AF%95&order_list=%5B%20%5B%2202.01.0601.45.75%22%2C%20%22%E9%BB%91%22%5D%5D'
+headers = {
+  'Content-Type': 'application/x-www-form-urlencoded'
+}
 response = requests.request("POST", url, headers=headers, data=payload)
+print(response.text)
 ```
 
 Response example:

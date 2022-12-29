@@ -31,6 +31,6 @@ class DetectionRequest(models.Model):
     order_list = models.CharField(max_length=1000, null=True)
     result = models.CharField(max_length=1000, null=True)
 
-    __str__ = lambda self: str(self.id) + '|' + str(
-        self.timestamp) + '|' + self.station_id + '|' + self.status + '|' + str(self.order_list) + '|' + str(self.result
+    __str__ = lambda self: str(self.id) + ' | ' + str(
+        self.timestamp) + ' | ' + self.station_id + ' | ' + self.status + ' | ' + str(self.search_key) + ' | ' + str(self.order_list) + ' | ' + str(self.result
                                                                                                             ) + '<br />'

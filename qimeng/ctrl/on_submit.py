@@ -1,6 +1,6 @@
 from typing import List, Optional
 import numpy as np
-from apis.models import DetectionRequest
+from apis.models import DetectionRequest, Brick
 import json
 import time
 import multiprocessing as mp
@@ -18,26 +18,6 @@ with open('/share/settings.json') as f:
     d = json.load(f)
     ALGORITHM_RPC_URL = d['algorithm_rpc_url']
     SERVER_URL = d['camera_server_url_local']
-
-class Brick:
-
-    def __init__(self, **kwargs) -> None:
-        self._shape = kwargs['shape']
-        self._color = kwargs['color']
-
-    @property
-    def color(self, color_id: str):
-        self._color = color_id
-
-    @property
-    def shape(self, shape_id: str):
-        self._shape = shape_id
-
-    def as_tuple(self):
-        return (self._shape, self._color)
-
-    def __str__(self) -> str:
-        return str((self._shape, self._color))
 
 
 class Timer(object):
@@ -58,6 +38,16 @@ class Timer(object):
         for i in range(len(self.names)):
             delta = self.steps[i + 1] - self.steps[i]
             self.logger.info(f"{self.names[i]:10} spent {delta.seconds * 1000 + delta.microseconds // 1000} ms")
+
+
+def parse_list(s: str) -> List[str]:
+    l = json.loads(s)
+    return [f"{i[0]}#{i[1]}" for i in l]
+
+
+def search_list(s: str) -> List[str]:
+    l = Brick.objects.filter(name__contains=s)
+    return [f"{i.shape}#{i.color}" for i in l]
 
 
 def on_submit(det_req: DetectionRequest):
@@ -84,6 +74,7 @@ def on_submit(det_req: DetectionRequest):
             elif det_req.search_key is not None:
                 logger.info('search_key exists. Start searching')
                 brick_list = search_list(det_req.search_key)
+                # brick_list = None
             else:
                 brick_list = None
             timer.tick('search')
@@ -91,17 +82,22 @@ def on_submit(det_req: DetectionRequest):
             # Detection
             detection_client = zerorpc.Client(ALGORITHM_RPC_URL)
             shape_results, color_results = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
-            logger.info('Predictions: \n' + '\n'.join([f"{shape}, {color}" for shape, color in zip(shape_results, color_results)]))
+            logger.info('Predictions: \n' +
+                        '\n'.join([f"{shape}, {color}" for shape, color in zip(shape_results, color_results)]))
 
-            
+            comb_final_list = Counter([(i, j) for i, j in zip(shape_results, color_results)]).most_common(5)
+            comb_final_list = [f"{i[0][0]}#{i[0][1]}" for i in comb_final_list]
 
-            shape_final_list = Counter(shape_results).most_common()
-            color_final_list = Counter(color_results).most_common()
-            
-            if len(shape_final_list) == 0 or len(color_final_list) == 0:
-                det_req.result = json.dumps({"shape": [], "color": []})
+            logger.info('comb_final_list: ' + str(comb_final_list))
+            logger.info('brick list: ' + str(brick_list))
+
+            if len(comb_final_list) == 0:
+                det_req.result = json.dumps({"results": []})
             else:
-                result = {"shape": [shape_final_list[0][0]], "color": [color_final_list[0][0]]}
+                if brick_list is not None:
+                    result = {"results": [i for i in comb_final_list if i in brick_list]}
+                else:
+                    result = {"results": [i for i in comb_final_list]}
                 det_req.result = json.dumps(result, ensure_ascii=False)
             det_req.status = DetectionRequest.FINISHED
             det_req.save()
@@ -110,25 +106,3 @@ def on_submit(det_req: DetectionRequest):
         logger.error(str(type(e)) + ': ' + str(e))
         det_req.status = DetectionRequest.ERROR
         det_req.save()
-
-
-def parse_list(buffer: str) -> List[Brick]:
-    order_list = json.loads(buffer)
-    return [Brick(*i) for i in order_list]
-
-
-def search_list(key: str) -> List[Brick]:
-    # TODO fill in implementation
-    # time.sleep(1)
-    return [
-        Brick(shape=key, color='Grey'),
-    ]
-
-
-def detection(im_arr: np.ndarray, brick_list: Optional[List[Brick]]) -> List[Brick]:
-    # time.sleep(1)
-    # TODO fill in implementation
-    return [
-        Brick(shape='Round', color='Red'),
-        Brick(shape='Square', color='Blue'),
-    ]
