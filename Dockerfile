@@ -1,4 +1,5 @@
 FROM python:3.9
+ADD sources.list /etc/apt/sources.list
 RUN apt-get update && \
     apt-get install redis libgl1-mesa-glx libglib2.0-0 lsb-release -y && \
     apt-get clean
