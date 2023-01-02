@@ -81,24 +81,11 @@ def on_submit(det_req: DetectionRequest):
 
             # Detection
             detection_client = zerorpc.Client(ALGORITHM_RPC_URL)
-            shape_results, color_results = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
+            results = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
             logger.info('Predictions: \n' +
-                        '\n'.join([f"{shape}, {color}" for shape, color in zip(shape_results, color_results)]))
-
-            comb_final_list = Counter([(i, j) for i, j in zip(shape_results, color_results)]).most_common(5)
-            comb_final_list = [f"{i[0][0]}#{i[0][1]}" for i in comb_final_list]
-
-            logger.info('comb_final_list: ' + str(comb_final_list))
-            logger.info('brick list: ' + str(brick_list))
-
-            if len(comb_final_list) == 0:
-                det_req.result = json.dumps({"results": []})
-            else:
-                if brick_list is not None:
-                    result = {"results": [i for i in comb_final_list if i in brick_list]}
-                else:
-                    result = {"results": [i for i in comb_final_list]}
-                det_req.result = json.dumps(result, ensure_ascii=False)
+                        '\n'.join([f"{result}" for result in results]))
+            logger.info(results)
+            det_req.result = str(results)
             det_req.status = DetectionRequest.FINISHED
             det_req.save()
             timer.tick('detection')
