@@ -10,4 +10,5 @@ urlpatterns = [
     path('create/', views.create_det_req, name='create_det_req'),
     path('query/<str:id>/', views.query_det_req, name='query_det_req'),
     path('clear/', views.clear, name='clear'),
+    path('clear_bricks/', views.clear_bricks, name='clear_bricks'),
 ]

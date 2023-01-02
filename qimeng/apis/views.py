@@ -21,7 +21,7 @@ def test(request):
 
 def test_bricks(request):
     bricks = Brick.objects.all()
-    return HttpResponse('\n'.join([i.name + ' | ' + i.shape + ' | ' + i.color for i in bricks]))
+    return HttpResponse('<br />\n'.join([i.name + ' | ' + i.shape + ' | ' + i.color for i in bricks]))
 
 def update_bricks(request):
     if request.method != 'POST':
@@ -48,6 +48,8 @@ def create_det_req(request: HttpRequest):
         try:
             assert type(json.loads(order_list)) == list
         except:
+            logger.error('error order_list parsing: ' + str(type(order_list)))
+            logger.error(order_list)
             return HttpResponseBadRequest()
     det_req = DetectionRequest(station_id=station_id, search_key=search_key, order_list=order_list)
     det_req.save()
@@ -73,4 +75,8 @@ def clear(request):
     DetectionRequest.objects.all().delete()
     return HttpResponse('success')
 
-
+def clear_bricks(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest()
+    Brick.objects.all().delete()
+    return HttpResponse('success')

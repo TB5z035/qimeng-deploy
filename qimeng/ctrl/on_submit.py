@@ -78,10 +78,13 @@ def on_submit(det_req: DetectionRequest):
             else:
                 brick_list = None
             timer.tick('search')
+            logger.info(brick_list)
 
             # Detection
             detection_client = zerorpc.Client(ALGORITHM_RPC_URL)
             results = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
+            if brick_list is not None:
+                results = [i for i in results if i[0][0]+'#'+i[0][1] in brick_list]
             logger.info('Predictions: \n' +
                         '\n'.join([f"{result}" for result in results]))
             logger.info(results)
