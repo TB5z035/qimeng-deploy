@@ -97,40 +97,62 @@ docker run -v /share:/share --rm -it --name camera -p $PORT:$PORT --privileged t
 
 ### `GET apis/ping/	`
 
-> Server test
+> 服务器连通测试
 
-Response example:
+响应样例：
 
 ```
 pong
 ```
 
-### `GET apis/test/`
+### `GET apis/list/`
 
-> For debug only. Return a human-friendly list containing all detection queries.
+> 只用于调试。返回检测请求的状态可视化
 >
-> Return format:
+> 返回格式：
 >
-> `[id]|[timestamp]|[station id]|[status]|[brick list from order]|[result]`
+> `[检测请求ID] | [时间戳] | [工站编号] | [检测状态] | [（可选）工单列表] | [（可选）搜索关键词] | [检测结果]`
 
-Response example:
+响应样例：
 
 ```shell
-234|2022-12-21 09:19:54.843322+00:00|1|FINISHED|None|{"0": "2"}
-235|2022-12-21 09:27:00.648603+00:00|1|FINISHED|None|{"0": "2"}
+5 | 2023-01-02 15:14:55.631298+00:00 | 192.168.2.61 | FINISHED | None | None | [('02.02.0202.01.45', '54'), 0.56524086]
+[('02.02.0202.01.45', '59'), 0.30756888]
+[('02.02.0202.01.12', '54'), 0.04166368]
+[('02.02.0202.01.12', '59'), 0.022670781]
+[('02.02.0202.01.45', '29'), 0.01490246]
+[('02.02.0202.04.55', '54'), 0.008121818]
+[('02.02.0202.04.55', '59'), 0.0044193882]
+[('02.02.0202.01.45', 'D9'), 0.004251861]
+[('02.02.0202.01.45', '43'), 0.0035241335]
+[('02.02.0202.01.45', 'B6'), 0.0015638525]
+6 | 2023-01-02 15:17:10.800552+00:00 | 192.168.2.61 | FINISHED | None | None | [('02.01.0101.01.10', '58'), 0.8483082]
+[('02.01.0101.01.99', '58'), 0.110284604]
+[('02.01.0101.10.12', '58'), 0.011641412]
+[('02.01.0101.10.11', '58'), 0.0058405213]
+[('02.01.0101.01.10', 'G5'), 0.0045391945]
+[('02.01.0101.01.30', '58'), 0.0039531877]
+[('02.01.0101.01.10', '65'), 0.002501456]
+[('02.01.0101.51.32', '58'), 0.0020376414]
+[('02.01.0101.01.10', '38'), 0.0012946441]
+[('02.01.0101.01.10', '36'), 0.0012279692]
 ```
 
 ### `POST apis/create/`
 
-> Submit a detection query.
+> 提交检测请求，返回JSON对象。需要以 `x-www-form-urlencoded` 格式提供以下参数：
 >
-> Specify station ID in `x-www-form-urlencoded`
+> * `station_id`：工站编号；服务端使用这个编号来选择需要拍摄的相机，实际部署时会使用工站电脑的IP地址作为工站编号
+> * `order_list`：（可选）JSON字符串格式的工单列表；用于缩减检测范围。
+>   * JSON字符串为列表，每一个元素分别为形状ID和颜色ID的组合
+>   * 举例：`[["02.01.0101.01.10", "58"], ["02.02.0202.01.45", "D9"]]` 
+> * `search_key`：（可选）搜索关键字；用于缩减检测范围
+>   * 举例：`2x4`
+>   * 使用`search_key`需要使用[接口](#post-apisupdate_bricks)录入待检索的积木列表
 >
-> ==TODO==
->
-> If the query is successfully submitted, the ID for this query is returned.
+> 如果检测请求创建成功，检测请求的ID将被返回
 
-Request example:
+请求样例（Python 3）：
 
 ```python
 import requests
@@ -144,7 +166,7 @@ response = requests.request("POST", url, headers=headers, data=payload)
 print(response.text)
 ```
 
-Response example:
+响应样例：
 
 ```json
 {"detection_id": 237}
@@ -152,19 +174,22 @@ Response example:
 
 ### `GET apis/query/<id>/`
 
-> Get detection result for certain query.
+> 查询检测请求的状态，返回JSON对象。
 >
-> In the response:
+> 在响应JSON对象中：
 >
-> - `detection_id`: The id for detection query
-> - `status`: The status of detection query
->   - `SUBMMITED`
->   - `RUNNING`
->   - `FINISHED`
->   - `ERROR`
-> - `result`: The result of the detection: ==TODO==
+> - `detection_id`: 检测请求的ID
+> - `status`: 检测请求的状态
+>   - `SUBMMITED`：已提交，正在排队
+>   - `RUNNING`：正在检测
+>   - `FINISHED`：检测完成
+>   - `ERROR`：发生错误
+> - `result`: 检测结果
+>   - 未检测完时为`null`
+>   - 检测完成后为JSON格式字符串，为预测结果的列表
+>   - 预测结果格式为`[("形状id", "颜色id"), 置信度]`
 
-Request example:
+请求样例（Python 3）：
 
 ```python
 import requests
@@ -174,7 +199,7 @@ headers = {}
 response = requests.request("GET", url, headers=headers, data=payload)
 ```
 
-Response example:
+响应样例：
 
 ```json
 {
@@ -184,11 +209,29 @@ Response example:
 }
 ```
 
+```json
+{
+    "detection_id": 238,
+    "status": "FINISHED",
+    "result": [
+        [('02.01.0101.01.10', '58'), 0.8483082],
+        [('02.01.0101.01.99', '58'), 0.110284604],
+        [('02.01.0101.10.12', '58'), 0.011641412],
+        [('02.01.0101.10.11', '58'), 0.0058405213],
+        [('02.01.0101.01.10', 'G5'), 0.0045391945],
+        [('02.01.0101.01.30', '58'), 0.0039531877],
+        [('02.01.0101.01.10', '65'), 0.002501456],
+        [('02.01.0101.51.32', '58'), 0.0020376414],
+        [('02.01.0101.01.10', '38'), 0.0012946441],
+        [('02.01.0101.01.10', '36'), 0.0012279692]
+}
+```
+
 ### `POST apis/clear/`
 
-> Delete all detection queries on the server.
+> 删除服务器上的全部检测请求
 
-Request example:
+请求样例（Python 3）：
 
 ```python
 # Python 3
@@ -199,7 +242,7 @@ headers = {}
 response = requests.request("POST", url, headers=headers, data=payload)
 ```
 
-Response example:
+响应样例：
 
 ```shell
 success
@@ -207,19 +250,21 @@ success
 
 ### `GET apis/list_bricks/`
 
-> Get the bricks in use.
+> 返回待检索的积木列表。列表中每一项格式为`[名称] | [形状ID] | [颜色ID]`
 
-Response example:
+响应样例：
 
 ```shell
-圆形件 | 02.07.0202.10.45 | 红
+2x2圆形黑色件 | 02.07.0202.10.45 | 10
 ```
 
 ### `POST apis/update_bricks/`
 
-> Delete all current bricks in the system and replace with a new list 
+> 清空现有的待检索积木列表，替换为请求中的列表。
+>
+> 请求体为JSON字符串，样例见下方：
 
-Request example:
+请求样例:
 
 ```python
 import requests
@@ -228,9 +273,9 @@ url = "127.0.0.1:8000/apis/update_bricks/"
 payload = json.dumps({
   "bricks": [
     [
-      "圆形件",
+      "2x2圆形黑色件",
       "02.07.0202.10.45",
-      "彩色的"
+      "10"
     ]
   ]
 })
@@ -241,7 +286,7 @@ response = requests.request("POST", url, headers=headers, data=payload)
 
 ```
 
-Response example:
+响应样例:
 
 ```shell
 success
