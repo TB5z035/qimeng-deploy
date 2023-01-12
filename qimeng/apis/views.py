@@ -26,13 +26,19 @@ def test_bricks(request):
 def update_bricks(request):
     if request.method != 'POST':
         return HttpResponseBadRequest()
-    try:
-        info = json.loads(request.body.decode())
-    except json.JSONDecodeError:
-        return HttpResponseBadRequest('invalid json')
+    file = request.FILES['bricks']
+    s = file.read().decode()
+    # logger.info(s)
+    info = json.loads(s)
+    # info = json.load(request.FILES['bricks'].read().decode())
+    # try:
+    #     info = json.loads(request.body.decode())
+    # except json.JSONDecodeError:
+    #     return HttpResponseBadRequest('invalid json')
     Brick.objects.all().delete()
-    for name, shape, color in info['bricks']:
-        Brick(name=name, shape=shape, color=color).save()
+    Brick.objects.bulk_create([Brick(name=name, brick_id=brick_id) for name, brick_id in info['bricks']])
+    # for name, id in info['bricks']:
+    #     Brick(name=name, brick_id=id).save()
     return HttpResponse('success')
 
 def create_det_req(request: HttpRequest):

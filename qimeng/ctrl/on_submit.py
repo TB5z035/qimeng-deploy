@@ -47,7 +47,7 @@ def parse_list(s: str) -> List[str]:
 
 def search_list(s: str) -> List[str]:
     l = Brick.objects.filter(name__contains=s)
-    return [f"{i.shape}#{i.color}" for i in l]
+    return [i.brick_id for i in l]
 
 
 def on_submit(det_req: DetectionRequest):
@@ -84,7 +84,9 @@ def on_submit(det_req: DetectionRequest):
             detection_client = zerorpc.Client(ALGORITHM_RPC_URL)
             results = pickle.loads(detection_client.infer(pickle.dumps(image_arr)))
             if brick_list is not None:
-                results = [i for i in results if i[0][0]+'#'+i[0][1] in brick_list]
+                results = [i for i in results if i[0][0][:-2]+i[0][1] in brick_list]
+            for result in results:
+                result[0] = result[0][0][:-2] + result[0][1]
             logger.info('Predictions: \n' +
                         '\n'.join([f"{result}" for result in results]))
             logger.info(results)
