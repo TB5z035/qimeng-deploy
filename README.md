@@ -306,8 +306,8 @@ import requests
 import json
 url = "127.0.0.1:8000/apis/update_bricks/"
 payload = json.dumps({
-  "result": False,			# 算法输出结果（第一项）是否正确
-  "id": "02.07.0202.10.45",	# 正确的积木ID
+  "result": False,          # 算法输出结果（第一项）是否正确
+  "id": "02.07.0202.10.45", # 正确的积木ID
 })
 headers = {
   'Content-Type': 'application/json'
