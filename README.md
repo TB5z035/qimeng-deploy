@@ -316,5 +316,11 @@ response = requests.request("POST", url, headers=headers, data=payload)
 
 ```
 
+响应样例：
+
+```
+success
+```
+
 
 
